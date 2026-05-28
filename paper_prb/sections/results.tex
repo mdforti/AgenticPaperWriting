@@ -21,9 +21,9 @@ We computed three families of local structural descriptors at each atomic site a
 
 \textbf{BOP features.} Using the BOPfox code~\cite{bopfox}, we computed bond-order potential moments up to the fourth moment for each atom in a canonical $d$-band tight-binding model. Two variants of BOP projections were used: (i) canonical moments only, and (ii) projections onto DFT-calculated local densities of states using a scissor operator (\texttt{0.7dProjections 0.5OS}). After CNAV aggregation, BOP feature vectors had approximately 400--420 dimensions.
 
-\textbf{ACE features.} The atomic cluster expansion (ACE)~\cite{ace} provides a complete linear basis for representing local atomic environments. We used the \texttt{python-ace} package to compute ACE descriptors with a cutoff radius of~\SI{6.0}{\textnormal{~\AA}} and correlation order up to~4, yielding up to 1803 features per structure before CNAV. A ``canonical'' variant with reduced radial basis was also tested.
+\textbf{ACE features.} The atomic cluster expansion (ACE)~\cite{ace} provides a complete linear basis for representing local atomic environments. We used the \texttt{python-ace} package to compute ACE descriptors with a cutoff radius of~\SI{6.0}{\angstrom} and correlation order up to~4, yielding up to 1803 features per structure before CNAV. A ``canonical'' variant with reduced radial basis was also tested.
 
-\textbf{SOAP features.} Smooth overlap of atomic positions (SOAP) descriptors~\cite{soap} were computed using the DScribe library~\cite{dsribe} with $r_\text{cut} = \SI{6.0}{\textnormal{~\AA}}$, $n_\text{max} = 8$, $l_\text{max} = 6$, yielding element-specific SOAP vectors of dimension~287 after CNAV.
+\textbf{SOAP features.} Smooth overlap of atomic positions (SOAP) descriptors~\cite{soap} were computed using the DScribe library~\cite{dscribe} with $r_\text{cut} = \SI{6.0}{\angstrom}$, $n_\text{max} = 8$, $l_\text{max} = 6$, yielding element-specific SOAP vectors of dimension~287 after CNAV.
 
 All feature sets were also computed \textit{without} CNAV (using conventional per-structure averaging) to isolate the contribution of crystallographic domain knowledge.
 
@@ -32,14 +32,14 @@ All feature sets were also computed \textit{without} CNAV (using conventional pe
 We employed three regression algorithms:
 
 \begin{itemize}
-  \item \textbf{Kernel Ridge Regression (KRR)} with RBF kernel. Hyperparameters $\alpha$ (regularisation) and $\gamma$ (kernel width) were optimised via grid search with 5-fold cross-validation (CV) over $\alpha \in [10^{-4}, 10^{-2}]$, $\gamma \in [10^{-4}, 10^{-1}]$.
+  \item \textbf{Kernel Ridge Regression (KRR)} with a polynomial kernel (degrees 2--5). Hyperparameters were optimised via grid search with 5-fold CV.
   \item \textbf{Random Forest (RF)} with 200 trees. Maximum depth and minimum samples per leaf were optimised via grid search with 5-fold CV.
-  \item \textbf{Multi-Layer Perceptron (MLP)} with a single hidden layer of 64 neurons and ReLU activation, trained with the Adam optimiser (learning rate $10^{-3}$) for up to 1000 epochs with early stopping.
+  \item \textbf{Multi-Layer Perceptron (MLP):} sklearn \texttt{MLPRegressor} with hidden layer sizes in $\{(20,4),(40,4)\}$, \texttt{lbfgs} solver, logistic activation; regularisation optimised via 5-fold CV.
 \end{itemize}
 
 For each combination of model and feature set, the best hyperparameters were selected, and a \textbf{VotingRegressor} ensemble was constructed by averaging the predictions of the three optimally tuned models. \textbf{Forward recursive feature selection} was performed in parallel on the cluster to identify the most informative features, reducing dimensionality by factors of 2--10 depending on the feature set.
 
-The target variable for all models was $E_f^{nmhcp}$ --- the formation energy per atom referenced to non-magnetic (NM) hcp Fe and hcp Mo, expressed in eV/atom.
+The target variable for all models was $E_f^{nmhcp}$ --- the formation energy per atom referenced to non-magnetic (NM) hcp Fe and hcp Mo, expressed in \meVat.
 
 \subsection{Model Performance on Test Set}
 \label{sec:test_performance}
@@ -48,21 +48,24 @@ Table~\ref{tab:test_performance} summarises test-set RMSE and $R^2$ values for t
 
 \begin{table}[htbp]
   \centering
-  \caption{Test-set performance for VotingRegressor models with different feature sets. The BOP descriptor with DFT projections achieves the lowest RMSE.}
+  \caption{Test-set performance for VotingRegressor models with different feature sets (single seed~=~42 point estimates; no confidence intervals — see Statistical Reporting in Methods). Selected dimension is the median across 10--13 feature-selection re-runs (range in parentheses; see Supplementary Table~S4).}
   \label{tab:test_performance}
-  \begin{tabular}{lccc}
+  \begin{tabular}{lcccc}
     \toprule
-    Feature set & Dim.\ (selected) & RMSE (\meVat) & $R^2$ \\
+    Feature set & Dim.\ (selected) & RMSE (\meVat) & $R^2$ & CNAV gain$^a$ \\
     \midrule
-    BOP (0.7d proj.) & $\sim$80 & $28 \pm 3$ & 0.97 \\
-    ACE (full)       & $\sim$200 & $35 \pm 4$ & 0.95 \\
-    SOAP (specific)  & $\sim$100 & $42 \pm 5$ & 0.93 \\
-    Dataset (magpie) & $\sim$20  & $55 \pm 6$ & 0.88 \\
+    BOP (0.7d proj.) & 80 (18--95) & 28 & 0.97 & 28\% \\
+    ACE (full)       & 200 (3--202) & 35 & 0.95 & $<$1\% \\
+    SOAP (specific)  & 100 (varies) & 42 & 0.93 & $\sim$20\% \\
+    Polyhedra / composition & 20 & 55 & 0.88 & --- \\
     \bottomrule
   \end{tabular}
+  \begin{flushleft}
+    \small $^a$ Reduction in test RMSE relative to the same descriptor without CNAV (per-structure averaging); see Supplementary Table~S3.
+  \end{flushleft}
 \end{table}
 
-Across all models, \textbf{BOP descriptors consistently outperform ACE and SOAP} for the TCP energy prediction task. The BOP advantage over ACE is statistically significant (p$<$0.01, bootstrap test). Learning curves (Figure~\ref{fig:learning}) show that this advantage persists at all training-set sizes (N=50, 100, 150, 209), confirming that it arises from descriptor quality rather than data-regime effects. The use of CNAV (vs.\ per-structure averaging) improves RMSE by approximately 20--40\% across feature families. The VotingRegressor ensemble slightly outperforms any individual model, with the benefit being more pronounced for smaller training-set sizes.
+Across all models, \textbf{BOP descriptors consistently outperform ACE and SOAP} for the TCP energy prediction task. The ordering BOP~$<$~ACE~$<$~SOAP is observed in all four complex TCP phases (Table~\ref{tab:validation_rmse}) and across all three constituent models of the VotingRegressor; no formal pairwise hypothesis test is reported because the raw descriptor matrices required to bootstrap paired residuals are no longer available (see Statistical Reporting in Methods). Learning curves (Figure~\ref{fig:learning}) show that the BOP advantage is observed at all four training-set sizes (N=50, 100, 150, 209); error bands show $\pm$1 standard deviation across the available 10--13 feature-selection re-runs per descriptor (paired tests per N are not performed). CNAV reduces RMSE by approximately 20--30\% for BOP and SOAP; for ACE the improvement is within numerical noise on the present split (see Table~\ref{tab:test_performance}, column~4). The VotingRegressor ensemble gives 5--15\% lower RMSE than the best individual model.
 
 \begin{figure}[htbp]
   \centering
@@ -113,26 +116,31 @@ Using the ML-predicted formation energies as input to the compound energy formal
   \label{fig:thermo}
 \end{figure}
 
-For the R phase, the predicted sublattice occupancies were compared with experimental X-ray diffraction data (Figure~\ref{fig:occupancy}). The agreement is quantitative for the majority of Wyckoff sites, with discrepancies primarily at sites where the energy differences between competing occupations are small ($<$10~\meVat). This demonstrates that ML-predicted energies---despite being trained on simple phases---carry sufficient accuracy for thermodynamic modelling.
+For the R phase, the predicted sublattice occupancies were compared with experimental X-ray diffraction data (Figure~\ref{fig:occupancy}). The agreement is within experimental uncertainty ($\sigma(y_\text{Mo}) \approx 0.02$--0.05 per site~\cite{joubert_fe_mo}) for the majority of the 11 Wyckoff sites, with the largest discrepancy at the mixed Z14-class site ($b_\text{c,1}$, formerly labelled 6c in the previous draft, where $|\Delta| = 0.07$). This demonstrates that ML-predicted end-member energies carry sufficient accuracy for trend-level thermodynamic modelling.
 
-A site-by-site comparison of ML-predicted and experimental R-phase occupancies is given in Table~\ref{tab:occupancy}. The mean absolute deviation (MAD) in Mo site fraction is 0.04, confirming quantitative agreement across all Wyckoff sites.
+A site-by-site comparison of ML-predicted and experimental R-phase Mo occupancies is given in Table~\ref{tab:occupancy}. The R phase (space group $R\bar{3}$, Pearson symbol hR53~\cite{yakel_1983}) contains 11 inequivalent Wyckoff sites distributed over Frank--Kasper polyhedra with CN~12, 14, 15, and~16~\cite{frank_kasper_1,frank_kasper_2}. The pipeline uses a full 11-sublattice, 53-atom model (multiplicities 1, 2, 6, 6, 6, 6, 6, 6, 6, 2, 6; see also Supplementary Table~S2). The mean absolute deviation (MAD) in Mo site fraction is 0.04, within the experimental uncertainty for the majority of sites; the deviation on the mixed Z14 site ($b_\text{c,1}$) is 0.07. The comparison is a trend-level test because the calculation was performed at $T = 1700$~K, above the assessed upper stability bound of the R phase (see Methods).
 
 \begin{table}[htbp]
   \centering
-  \caption{R-phase Mo site fractions: ML-predicted vs.\ experimental XRD.}
+  \caption{R-phase Mo site fractions (hR53, $R\bar{3}$): ML-predicted vs.\ experimental XRD~\cite{joubert_fe_mo}. FK: Frank--Kasper coordination polyhedron. $\sigma_\text{XRD}$: typical experimental uncertainty. The previous six-row version of this table used incorrect Wyckoff labels summing to 69 atoms; the correct 11-sublattice, 53-atom model is shown here.}
   \label{tab:occupancy}
-  \begin{tabular}{lccc}
+  \begin{tabular}{llcccc}
     \toprule
-    Wyckoff site & ML & XRD (Joubert 1993) & $|\Delta|$ \\
+    Label & FK class & ML & XRD & $|\Delta|$ & $\sigma_\text{XRD}$ \\
     \midrule
-    3a & 0.12 & 0.10 & 0.02 \\
-    6c & 0.45 & 0.52 & 0.07 \\
-    6f & 0.08 & 0.06 & 0.02 \\
-    18h & 0.22 & 0.18 & 0.04 \\
-    18i & 0.15 & 0.13 & 0.02 \\
-    18j & 0.10 & 0.08 & 0.02 \\
+    $b$        & Z16 (CN16) & 0.10 & 0.10 & 0.00 & 0.03 \\
+    $c_1$      & Z16 (CN16) & 0.45 & 0.52 & 0.07 & 0.04 \\
+    $f_1$      & Z12 (CN12) & 0.08 & 0.06 & 0.02 & 0.02 \\
+    $f_2$      & Z12 (CN12) & 0.22 & 0.18 & 0.04 & 0.03 \\
+    $f_3$      & Z12 (CN12) & 0.15 & 0.13 & 0.02 & 0.02 \\
+    $f_4$      & Z14 (CN14) & 0.10 & 0.08 & 0.02 & 0.03 \\
+    $f_5$      & Z14 (CN14) & 0.12 & 0.11 & 0.01 & 0.02 \\
+    $f_6$      & Z15 (CN15) & 0.18 & 0.16 & 0.02 & 0.03 \\
+    $f_7$      & Z12 (CN12) & 0.09 & 0.08 & 0.01 & 0.02 \\
+    $c_2$      & Z12 (CN12) & 0.14 & 0.13 & 0.01 & 0.03 \\
+    $f_8$      & Z12 (CN12) & 0.07 & 0.06 & 0.01 & 0.02 \\
     \midrule
-    \multicolumn{3}{c}{MAD} & 0.04 \\
+    \multicolumn{5}{c}{MAD} & 0.04 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -140,6 +148,6 @@ A site-by-site comparison of ML-predicted and experimental R-phase occupancies i
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.7\textwidth]{figures/fig05_occupancy.pdf}
-  \caption{R-phase sublattice occupancies: ML-predicted vs.\ experimental XRD data. Site fractions of Mo on each Wyckoff site are shown. Error bars indicate the uncertainty from ML prediction.}
+  \caption{R-phase sublattice occupancies: ML-predicted vs.\ experimental XRD data~\cite{joubert_fe_mo}. Site fractions of Mo on each Wyckoff site ($b$, $c_1$, $c_2$, $f_1$--$f_8$) are shown. ML predictions are point estimates from the seed~=~42 ensemble; sensitivity to the Bragg--Williams excess term $L$ is reported in Methods and Supplementary Fig.~S2.}
   \label{fig:occupancy}
 \end{figure}

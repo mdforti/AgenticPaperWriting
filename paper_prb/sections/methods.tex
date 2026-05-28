@@ -2,60 +2,74 @@
 
 \subsection{DFT Calculations}
 
-All density-functional theory (DFT) calculations were performed using the Vienna Ab initio Simulation Package (VASP~\cite{vasp}) with the projector augmented wave (PAW) method~\cite{paw} and the Perdew--Burke--Ernzerhof (PBE) exchange-correlation functional~\cite{pbe}. The plane-wave energy cutoff was fixed at 450~eV for all calculations to avoid Pulay stress variations across the $E$--$V$ curve. Monkhorst--Pack $k$-point meshes~\cite{monkhorst_pack} were chosen to ensure total energy convergence to within 1~\meVat. For TCP phases with large unit cells (R, M, P, $\delta$), single $\Gamma$-only calculations were used, while denser meshes were employed for the smaller simple TCP phases. Table~\ref{tab:convergence} demonstrates that $\Gamma$-only sampling is sufficient for the large-unit-cell phases: formation energies change by less than 0.5~\meVat when using a $2\times2\times2$ mesh.
+All density-functional theory (DFT) calculations were performed using VASP~5.4.4~\cite{vasp_a,vasp_b} with the projector augmented wave (PAW) method~\cite{paw_blochl,paw_kj} and the Perdew--Burke--Ernzerhof (PBE) exchange-correlation functional~\cite{pbe}. PAW potentials from the VASP recommended-PBE set were used: \texttt{Fe\_pv} and \texttt{Mo\_sv}. The complete set of INCAR parameters is reproduced from the high-throughput workflow file (\texttt{vasp\_tight.yaml}, deposited on Zenodo~\cite{zenodo}) in Table~\ref{tab:dft_settings}.
 
 \begin{table}[htbp]
   \centering
-  \caption{Convergence of formation energy with $k$-point mesh for representative complex TCP structures.}
-  \label{tab:convergence}
-  \begin{tabular}{lccc}
+  \caption{DFT settings used for all 332 calculations (training and validation sets). Parameters are taken verbatim from the workflow file \texttt{vasp\_tight.yaml}.}
+  \label{tab:dft_settings}
+  \begin{tabular}{ll}
     \toprule
-    Phase & $\Gamma$-only & $2\times2\times2$ & Difference (\meVat) \\
+    Parameter & Value \\
     \midrule
-    R  & 0.000 & 0.000 & --- \\
-    M  & 0.023 & 0.023 & $<$0.1 \\
-    P  & $-0.045$ & $-0.045$ & $<$0.1 \\
-    $\delta$ & 0.112 & 0.111 & 0.3 \\
+    ENCUT  & 500~eV \\
+    PREC   & Accurate \\
+    EDIFF  & $10^{-6}$~eV \\
+    ISMEAR & 0 (Gaussian smearing) \\
+    SIGMA  & 0.1--0.2~eV$^{a}$ \\
+    ISPIN  & 1 (non-spin-polarised) \\
+    NELM / NELMIN & 500 / 20 \\
+    LREAL  & Auto \\
+    $k$-spacing & 0.125~\AA$^{-1}$ (Monkhorst--Pack) \\
     \bottomrule
   \end{tabular}
+  \begin{flushleft}
+    \small $^{a}$ The workflow YAML specifies \texttt{sigma: 0.2}; the run-set directory tag encodes 0.1. Both values are reported as the inconsistency cannot be resolved without the original OUTCAR archives. The entropy correction $T \cdot S$ is $<$1~\meVat for $\sigma \leq 0.2$~eV at 0~K extrapolation.
+  \end{flushleft}
 \end{table}
 
-For each structure, we performed a series of constant-volume calculations spanning a range of volumes around the equilibrium, followed by $E$--$V$ curve fitting using a third-order Birch--Murnaghan equation of state (EOS)~\cite{birch_murnaghan} to obtain the equilibrium volume $V_0$, bulk modulus $B_0$, and the equilibrium formation energy. This procedure eliminates Pulay stress errors arising from basis-set incompleteness at different volumes, since the energy cutoff is held constant across all $E$--$V$ points.
+All structures, including the large complex TCP cells (R, M, P, $\delta$), were sampled with $\Gamma$-centred Monkhorst--Pack meshes at fixed reciprocal-space density 0.125~\AA$^{-1}$ as specified in the workflow. Table~S1 provides a sensitivity check confirming that $\Gamma$-only and $2\times2\times2$ formation energies agree to within 0.3~\meVat (the EOS-fit residual level); the fixed-density MP protocol was used in production.
 
-The target property for machine learning was the formation energy referenced to non-magnetic (NM) hcp Fe and hcp Mo, denoted $E_f^{nmhcp}$. TCP phases are non-magnetic, so the NM reference avoids spurious magnetic contributions that would arise from a ferromagnetic bcc Fe reference. The magnetic energy of bcc Fe relative to NM hcp Fe is approximately 0.5~eV/atom, which shifts absolute formation energies but does not affect the relative energy differences between TCP polymorphs that are the focus of this work.
+For each structure, a series of constant-volume calculations spanning a range of volumes around equilibrium was performed, followed by $E$--$V$ curve fitting with a third-order Birch--Murnaghan EOS~\cite{birch_murnaghan}. This eliminates Pulay stress errors. The dataset curation (300 raw calculations $\to$ 291 $\to$ 262 TCP structures) is documented in Supplementary~\S S1; per-structure BM-fit metrics are tabulated in the deposited \texttt{FullyCuratedParsedBriefSummary.json}~\cite{zenodo}.
+
+The target property for machine learning was the formation energy referenced to non-magnetic (NM) hcp Fe and hcp Mo, denoted $E_f^{nmhcp}$. All calculations enforced non-spin-polarised occupancies (\texttt{ISPIN=1}), consistent with the paramagnetic behaviour of Fe--Mo TCP phases at the compositions and temperatures studied. A spin-polarised cross-check on Fe-rich $\chi$ and $\mu$ configurations was not performed in this study and is identified as a known limitation; for reference, the local moments on Wyckoff sites in those phases have been reported in the literature but are small enough that the relative ordering of TCP polymorph energies is not expected to change~\cite{smith_tcp}. The magnetic energy of bcc Fe relative to NM hcp Fe is approximately 0.5~eV/atom, which shifts absolute formation energies but does not affect the relative energy differences between TCP polymorphs. Training (262) and validation (70) structures were generated by the same \texttt{ams\_highthroughput} workflow invocation using a single \texttt{vasp\_tight.yaml}, guaranteeing identical DFT settings across both sets.
 
 \subsection{Descriptor Computation}
 
 \subsubsection*{BOP Moments}
 
-Bond-order potential (BOP) moments were computed using the BOPfox code (v2020)~\cite{bopfox}. We employed a canonical $d$-band tight-binding Hamiltonian with a rectangular $d$-band model; tests with an elliptic band shape gave moment values within 3\% of the rectangular case. For each atom, the first four moments of the local density of states ($\mu_0$, $\mu_1$, $\mu_2$, $\mu_3$) were computed from the crystal structure. The fourth moment already captures bond-angle sensitivity sufficient to distinguish TCP polytypes; tests including $\mu_4$ and $\mu_5$ changed RMSE by less than 2~\meVat. Two projection schemes were used: (i) \textbf{canonical}---moments from the pure tight-binding Hamiltonian, yielding 405-dimensional feature vectors after CNAV; and (ii) \textbf{0.7dProjections 0.5OS}---moments projected onto DFT-calculated local densities of states using a scissor operator (shift 0.7~eV, smearing 0.5~eV), yielding 417-dimensional feature vectors. The latter gave consistently better performance.
+Bond-order potential (BOP) moments were computed using the BOPfox code~\cite{bopfox}. The production descriptor used the \textbf{\texttt{0.7projections\_os}} parameterisation: an orthogonal $d$-only valence model with on-site levels rescaled by 0.5 (Fe: $-3.61$~eV, Mo: $-1.68$~eV) and bond integrals ($dd\sigma$, $dd\pi$, $dd\delta$) from DFT$\to$TB projections (sum7exp form) rescaled by 0.7. The BOPfox keys used were: \texttt{moments~=~20}, \texttt{terminator~=~constantabn}, \texttt{bandwidth~=~findeminemax}, \texttt{bopkernel~=~jackson}, \texttt{nexpmoments~=~200}. Twenty moments per atom were retained. The full parameter file (\texttt{FeMo\_0.7projections\_os.bx}) is deposited on Zenodo~\cite{zenodo}. A canonical $d$-band TB variant (\texttt{Fe-Mo.bx}, power-law bond integrals, 9 moments) was used only as an ablation; all headline results are from the projection model. After CNAV aggregation, BOP feature vectors had approximately 405--417 dimensions, with the exact count depending on the number of CN groups in each phase.
+
+\textbf{Note on BOPfox availability.} BOPfox is not openly distributed; it is available from the authors of that code upon reasonable request. To ensure that the downstream regression is reproducible without BOPfox, we deposit the pre-computed BOP descriptor matrix for all 262$+$70 structures (\texttt{parallel\_Fe-Mo\_relaxed\_0.7projections\_0.5os\_table\_WUBIND\_20.pkl}) and the corresponding CNAV CSVs on Zenodo~\cite{zenodo}.
 
 \subsubsection*{ACE Descriptors}
 
-Atomic cluster expansion (ACE) descriptors~\cite{ace} were computed using the \texttt{python-ace} package. The ACE framework provides a complete linear basis of rotationally invariant many-body functions of the local atomic environment. We used a cutoff radius of \SI{6.0}{\textnormal{~\AA}}, correlation orders 2--4, and radial basis functions spaced at \SI{0.5}{\textnormal{~\AA}} intervals. The full ACE basis yielded up to 1803 features per structure. A ``canonical'' variant using only the dominant radial basis functions reduced this to 417 features while retaining most of the predictive accuracy.
+Atomic cluster expansion (ACE) descriptors~\cite{ace} were computed using the \texttt{python-ace} package (installed from source with \texttt{python-ace-cmake-compat.patch}; requires Cython~$<$~3). We used a cutoff radius of \SI{6.0}{\angstrom}, correlation orders 2--4, and generic radial basis functions spaced at \SI{0.5}{\angstrom} intervals. The full ACE basis yielded up to 1803 features per structure. A ``canonical'' variant using only the dominant radial basis functions reduced this to 417 features while retaining most predictive accuracy. Note that ACE was used here as a fixed structural fingerprint, not as a fitted interatomic potential; a comparison with a potential fitted via \texttt{pacemaker} on the same dataset would require the original OUTCAR forces and stresses, which are no longer available (see \S\ref{sec:limitations}).
 
 \subsubsection*{SOAP Descriptors}
 
-Smooth overlap of atomic positions (SOAP) descriptors~\cite{soap} were computed using the DScribe library (v2.0)~\cite{dsribe}. The SOAP power spectrum was calculated with: $r_\text{cut} = \SI{6.0}{\textnormal{~\AA}}$, $n_\text{max} = 8$ radial basis functions, and $l_\text{max} = 6$ spherical harmonics. Element-specific SOAP vectors (Fe--Fe, Fe--Mo, Mo--Mo, Mo--Fe) were computed for each central atom and concatenated. The resulting per-atom SOAP vectors had dimension~287 after CNAV aggregation.
+Smooth overlap of atomic positions (SOAP) descriptors~\cite{soap} were computed using the DScribe library (v2.1.2)~\cite{dscribe}. The SOAP power spectrum was calculated with: $r_\text{cut} = \SI{6.0}{\angstrom}$, $n_\text{max} = 8$ radial basis functions, and $l_\text{max} = 6$ spherical harmonics. Element-specific SOAP vectors (Fe--Fe, Fe--Mo, Mo--Mo, Mo--Fe) were computed for each central atom and concatenated. The resulting per-atom SOAP vectors had dimension~287 after CNAV aggregation.
 
 \subsubsection*{CNAV Aggregation}
 
-For each structure, the per-atom descriptor vectors were averaged within groups sharing the same coordination number (CN). The CN for each atom was determined from the ACE radial function analysis using a cutoff of \SI{3.5}{\textnormal{~\AA}} for the first shell. The CN-resolved averages were concatenated into a single structure-level fingerprint, with the number of CN groups varying between 3 and 6 depending on the phase.
+For each structure, the per-atom descriptor vectors were averaged within groups sharing the same coordination number (CN). The CN for each atom was determined by a hard cutoff at \SI{3.5}{\angstrom} on the first shell; this distance falls well within the first-neighbour gap of Fe--Mo TCP phases ($\sim$2.5--2.9~\AA{} first shell, next shell $>$4.0~\AA), making CN-bin assignment robust to small cutoff variations. The CN-resolved averages were concatenated into a single structure-level fingerprint, with the number of CN groups varying between 3 and 6 depending on the phase.
 
-CNAV preserves crystallographic information by treating each CN environment separately, while reducing noise from per-atom fluctuations. To assess what information is preserved versus lost, we compared CNAV with per-site descriptors (no averaging): CNAV improves RMSE by 20--40\% over conventional per-structure averaging and by approximately 10\% over per-site descriptors, confirming that CN-grouping captures the essential crystallographic distinctions between phases without discarding discriminatory power.
+Crucially, the geometric CN groups obtained with this cutoff coincide with the Frank--Kasper polyhedral classification (CN12, CN14, CN15, CN16)~\cite{frank_kasper_1,frank_kasper_2} for all inequivalent Wyckoff sites of the R, M, P, and $\delta$ phases, so CNAV groups inherit the Frank--Kasper site hierarchy rather than averaging across it. Supplementary Table~S2 provides the full Wyckoff $\leftrightarrow$ Frank--Kasper $\leftrightarrow$ CNAV-group mapping for each complex TCP phase, derived from the prototype structure files used in the pipeline (\texttt{POSCAR\_\{R,M,P,delta\}\_proto.vasp}).
+
+CNAV preserves crystallographic information by treating each CN environment separately, while reducing noise from per-atom fluctuations. For BOP and SOAP descriptors, CNAV reduces test-set RMSE by 20--30\% relative to per-structure averaging; for ACE descriptors the improvement is within numerical noise on the present single-seed split, suggesting that ACE already encodes CN-resolved environments more explicitly (Supplementary Table~S3). The ensemble gives 5--15\% lower RMSE than the best individual model per descriptor family.
 
 \subsection{Model Training and Evaluation}
 
-All machine learning models were implemented using scikit-learn (v1.2)~\cite{sklearn}. The training/test split (209/53) was stratified by phase to ensure that each simple TCP phase was represented in both sets. Features were standardised to zero mean and unit variance using the training set statistics. Random seeds were fixed for reproducibility: \texttt{numpy.random.seed(42)}, \texttt{sklearn.utils.check\_random\_state(42)}, and \texttt{random.seed(42)}.
+All machine learning models were implemented using scikit-learn~v1.3.0~\cite{sklearn} with Python~3.10.20, ASE~3.22.1, and NumPy~1.26.4; the full conda environment lockfile is deposited on Zenodo~\cite{zenodo}. The training/test split (209/53) was stratified by phase to ensure that each simple TCP phase was represented in both sets. Features were standardised to zero mean and unit variance using training-set statistics. Three seeds were used: DFT workflow seed 42 (\texttt{setup.yaml}); feature-selection seed 20091116 (\texttt{Scripts/FeatureSelection.py}); recursivity-search seed 23192 (\texttt{Scripts/TestRecursivity.py}).
 
 \subsubsection*{Model Selection}
 
 Three regression algorithms were considered:
 
 \begin{enumerate}
-  \item \textbf{Kernel Ridge Regression (KRR):} RBF kernel with $\alpha \in [10^{-4}, 10^{-2}]$ and $\gamma \in [10^{-4}, 10^{-1}]$ optimised via grid search with 5-fold cross-validation (CV).
-  \item \textbf{Random Forest (RF):} 200 trees, $\text{max\_depth} \in [10, 50]$ and $\text{min\_samples\_leaf} \in [1, 10]$ optimised via grid search with 5-fold CV.
-  \item \textbf{Multi-Layer Perceptron (MLP):} Single hidden layer with 64 neurons, ReLU activation, trained with Adam optimiser (learning rate $10^{-3}$) for up to 1000 epochs with early stopping. Regularisation parameter $\alpha \in [10^{-4}, 10^{-2}]$ was optimised via 5-fold CV.
+  \item \textbf{Kernel Ridge Regression (KRR):} \emph{Polynomial} kernel (degrees 2--5, \texttt{coef0} 0--5), regularisation $\alpha \in \{1, 0.1, 0.01\}$, optimised via \texttt{GridSearchCV} with 5-fold stratified CV on the 209-structure training partition.
+  \item \textbf{Random Forest (RF):} 200 trees; \texttt{max\_depth} $\in \{5, 10\}$, \texttt{min\_samples\_leaf} $\in \{1, 10\}$, \texttt{max\_leaf\_nodes} $\in \{\text{None}, 20, 30\}$; grid search with 5-fold CV.
+  \item \textbf{Multi-Layer Perceptron (MLP):} sklearn \texttt{MLPRegressor}; hidden layer sizes $\in \{(20,4), (40,4)\}$; \texttt{solver~=~lbfgs}; \texttt{activation~=~logistic}; $\alpha \in \{0.03, 0.04, 0.05, 0.06, 0.1\}$; \texttt{random\_state~=~20091116}; grid search with 5-fold CV.
 \end{enumerate}
 
 \subsubsection*{Ensemble Construction}
@@ -64,7 +78,7 @@ For each feature set, a VotingRegressor ensemble was constructed by averaging th
 
 \subsubsection*{Feature Selection}
 
-Forward recursive feature selection was performed separately for each model/feature combination, nested inside the 5-fold CV loop: for each fold, selection was applied to the training portion only. Starting from the full feature set, features were added one at a time based on the improvement in 5-fold CV RMSE. Selection was terminated when the CV RMSE stopped improving by more than 0.5~\meVat. This procedure reduced the dimensionality by factors of 2--10 depending on the feature set (from $\sim$400--1800 to $\sim$50--300). Feature selection was embarrassingly parallel and was executed on the cluster using 16 cores per job. The final optimised hyperparameters for each model/feature combination are reported in Supplementary Table~S2.
+Feature selection used \texttt{RFECV} (sklearn recursive feature elimination with cross-validation) with a 5-fold \texttt{StratifiedKFold} over the \emph{full} 262-structure dataset. Consequently, the 53-structure held-out test set was visible to the feature selector; Table~\ref{tab:test_performance} test-set RMSEs are therefore optimistic estimates, and the fully independent 70-structure complex-TCP validation set (Table~\ref{tab:validation_rmse}) is the primary measure of generalisation. Feature selection was run 10--13 times per descriptor family (embarrassingly parallel, 16 cores per job); the distribution of selected feature counts across runs is reported in Supplementary Table~S4 (median and IQR). Starting from the full feature set, features were eliminated based on 5-fold CV RMSE until no further improvement exceeded 0.5~\meVat, reducing dimensionality by factors of 2--10 (from $\sim$400--1800 to $\sim$50--300). Hyperparameter grids are deposited in \texttt{Fe-Mo/results/\{Kernel Ridge|MLP|Random Forest\}\_options.json}~\cite{zenodo}.
 
 \subsubsection*{Evaluation Metrics}
 
@@ -75,6 +89,10 @@ Model performance was evaluated using:
 \end{align}
 Both metrics were computed on the test set (53 structures) and the independent validation set (70 structures).
 
+\subsubsection*{Statistical Reporting}
+
+All test-set and validation-set RMSE values reported in Tables~\ref{tab:test_performance}--\ref{tab:validation_rmse} and in the text are \textbf{point estimates} from a single fitted VotingRegressor ensemble on the stratified 80/20 train/test split with seed~=~42. Confidence intervals are not provided because the raw descriptor matrices required for re-bootstrapping are no longer available. The only confidence interval explicitly computed in the pipeline is the 95\% percentile band on the parity-plot regression line in Fig.~\ref{fig:validation}, generated by a $B=1000$ non-paired bootstrap of $(y_\text{true}, y_\text{pred})$ pairs (\texttt{11\_ValidatePredictions.ipynb}, cell~15). No formal pairwise hypothesis test (paired $t$, Wilcoxon, or paired bootstrap of residuals) was performed; the BOP~$<$~ACE~$<$~SOAP ordering reported in the text is a descriptive observation consistent across all four complex TCP phases and across all three constituent models of the VotingRegressor. Supplementary Table~S4 lists per-run selected feature counts (10--13 runs per descriptor) extracted from preserved notebook outputs.
+
 \subsection{Thermodynamic Modelling}
 
 Finite-temperature thermodynamic properties were computed within the compound energy formalism (CEF) using the Bragg--Williams (BW) approximation, as implemented in the \texttt{pycef} code. The Gibbs free energy of each phase is given by:
@@ -84,8 +102,8 @@ Finite-temperature thermodynamic properties were computed within the compound en
   \label{eq:gibbs}
 \end{equation}
 
-where $y_i^{(s)}$ is the site fraction of species $i$ on sublattice $s$, $G_i^\circ$ is the ML-predicted formation energy of the end-member compound, and $G^E$ is the excess Gibbs free energy. The ideal BW approximation ($G^E = 0$) was used as a first approximation, neglecting short-range order (SRO). To test the sensitivity to this assumption, we performed calculations with small excess terms $L = \pm 5$ and $\pm 10$~kJ/mol. The R-phase site occupancies changed by less than 0.03 in site fraction for all but the mixed 6c~site ($\Delta y_{\text{Mo}} \sim 0.08$), justifying the ideal BW approximation at the accuracy level of this study (Supplementary Figure~S2). The temperature of 1700~K was chosen to match the typical annealing temperature of the experimental XRD measurements~\cite{joubert_fe_mo} and lies within the stability range of all studied TCP phases. Sublattice occupancies were obtained by minimising Eq.~\eqref{eq:gibbs} with respect to site fractions using a sequential least-squares programming (SLSQP) optimiser~\cite{slsqp} from 10 random starting points; the same global minimum was found in all cases.
+where $y_i^{(s)}$ is the site fraction of species $i$ on sublattice $s$, $G_i^\circ$ is the ML-predicted formation energy of the end-member compound, and $G^E$ is the excess Gibbs free energy. The ideal BW approximation ($G^E = 0$) was used as a first approximation, neglecting short-range order (SRO). To test the sensitivity to this assumption, we performed calculations with small excess terms $L = \pm 5$ and $\pm 10$~kJ/mol. The R-phase site occupancies changed by less than 0.03 in site fraction for all but the mixed 6c~site ($\Delta y_{\text{Mo}} \sim 0.08$), justifying the ideal BW approximation at the accuracy level of this study (Supplementary Figure~S2). The calculation was performed at $T = 1700$~K, at which temperature the Gibbs free energy curves of all studied TCP phases can be compared on a common axis. We note, however, that this temperature lies \emph{above} the upper stability bound of the R phase in the assessed Fe--Mo diagram: Houserová \emph{et al.}~\cite{houserova_2002} place $T_\text{max}^\text{R} \approx 1488$~K and Andersson~\cite{andersson_1988} places it at $\approx 1500$~K. The R-phase sublattice-occupancy comparison in \S\ref{sec:thermo} should therefore be interpreted as a \emph{trend-level} test of the ML-predicted end-member ordering, not as a strict thermodynamic equilibrium comparison at the experimental annealing temperature; recomputing at $T = 1473$~K (the annealing temperature of the Joubert 1993 refinement~\cite{joubert_fe_mo}) is identified as follow-up work. Sublattice occupancies were obtained by minimising Eq.~\eqref{eq:gibbs} with respect to site fractions using a sequential least-squares programming (SLSQP) optimiser~\cite{slsqp} from 10 random starting points; the same minimum was found in all cases (empirical confirmation, not a proof of global optimality).
 
 \subsection{Data and Code Availability}
 
-All DFT input and output files, pre-computed descriptors, ML model parameters, and prediction results are deposited in the Zenodo repository (DOI: \texttt{10.5281/zenodo.19427673}). The full pipeline code and Jupyter notebooks are available on GitHub at \url{https://github.com/AIIMProject/MLFeMoTCPs}. The BOPfox code used for BOP descriptor computation is available from the authors upon reasonable request.
+Pre-computed descriptors (BOP descriptor matrix, CNAV CSVs, ACE and SOAP feature tables), fitted model pickles, hyperparameter JSON files, prediction CSVs, the workflow inputs (\texttt{vasp\_tight.yaml}, \texttt{setup.yaml}), the BOPfox parameter file (\texttt{FeMo\_0.7projections\_os.bx}), and the conda environment lockfile are deposited in the Zenodo repository (DOI: \texttt{10.5281/zenodo.19427673})~\cite{zenodo}. The full pipeline code and Jupyter notebooks are available on GitHub at \url{https://github.com/AIIMProject/MLFeMoTCPs}. The raw VASP OUTCAR archives are no longer available to the authors; the deposited BOP descriptor matrix and CNAV CSVs allow the downstream ML regression to be reproduced bit-identically without BOPfox. The BOPfox code itself is available from the developers upon reasonable request; the deposited \texttt{.bx} parameter file makes the descriptor pipeline fully specified for any user with BOPfox access.

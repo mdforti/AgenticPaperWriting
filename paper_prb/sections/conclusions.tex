@@ -1,14 +1,15 @@
 % Conclusions section
 
-We have developed a data-efficient machine-learning framework for predicting the formation energies and sublattice occupancies of complex TCP intermetallic phases in the Fe--Mo binary system. By encoding domain knowledge of chemistry, crystallography, and local bonding into the feature representation, we achieve accurate predictions using only 262 DFT training structures of simple TCP phases.
+We have developed a data-efficient machine-learning framework for predicting the formation energies and sublattice occupancies of complex TCP intermetallic phases in the Fe--Mo binary system. By encoding domain knowledge of chemistry, crystallography, and local bonding into the feature representation, we achieve useful predictions using only 262 DFT training structures of simple TCP phases.
 
 Key findings include:
 
 \begin{enumerate}
-  \item BOP descriptors, derived from a canonical tight-binding model, provide the most transferable and accurate features for TCP energy prediction, outperforming ACE and SOAP across all test and validation sets.
-  \item Coordination-number-resolved averaging (CNAV) improves prediction accuracy by 20--40\% compared with conventional structure-level averaging, demonstrating the value of explicit crystallographic knowledge.
-  \item The VotingRegressor ensemble of KRR, RF, and MLP models ensures robust predictions, with ensemble averaging providing greater benefit in the small-data regime.
-  \item Predicted formation energies, when used within the Bragg--Williams--CEF thermodynamic framework, yield sublattice occupancies consistent with experimental X-ray diffraction data for the R phase.
+  \item BOP descriptors, derived from a DFT-projected tight-binding model with 20 moments, provide the most transferable features for TCP energy prediction, outperforming ACE and SOAP across all test and validation sets. This ordering is observed consistently across all four complex TCP phases and all three constituent models of the VotingRegressor.
+  \item Coordination-number-resolved averaging (CNAV) reduces prediction RMSE by 20--30\% for BOP and SOAP descriptors compared with conventional per-structure averaging; for ACE the improvement is within numerical noise on the present split, suggesting ACE already encodes CN-resolved environments more explicitly.
+  \item The VotingRegressor ensemble of KRR (polynomial kernel), RF, and MLP models outperforms any individual model by 5--15\%.
+  \item Predicted formation energies, when used within the Bragg--Williams--CEF thermodynamic framework, yield R-phase sublattice occupancies within experimental uncertainty for 10 of 11 sites (MAD~=~0.04; comparison is trend-level, performed at $T = 1700$~K above the assessed R-phase stability bound).
+  \item A full set of ML-predicted CEF end-member energies for the R, M, P, and $\delta$ phases is provided in Supplementary Table~S5 for use by the CALPHAD community~\cite{lukas_calphad,joubert_dupin_2004}.
 \end{enumerate}
 
-This work establishes a pathway for efficient computational discovery of TCP phase stability in multi-principal element alloys, where the combinatorial explosion of possible configurations makes exhaustive DFT sampling infeasible.
+This work demonstrates that physics-grounded descriptors and crystallographic domain knowledge enable data-efficient prediction of TCP phase stability. The most important next steps are: (i) a head-to-head comparison against a fitted linear-ACE potential on the same dataset (blocked here by the unavailability of the raw VASP force data); (ii) a transfer benchmark on Fe--W, Co--Mo, and Ni--Cr--Mo using existing DFT databases; and (iii) recomputing the R-phase site occupancies at the experimental annealing temperature ($T = 1473$~K).
