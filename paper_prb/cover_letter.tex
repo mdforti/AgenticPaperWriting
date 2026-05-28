@@ -1,0 +1,40 @@
+\documentclass[12pt]{letter}
+\usepackage{hyperref}
+\address{Mariano Forti \\
+         ICAMS, Ruhr-Universit\"at Bochum \\
+         44801 Bochum, Germany \\
+         \texttt{mariano.forti@rub.de}}
+\signature{Mariano Forti}
+\date{\today}
+
+\begin{document}
+
+\begin{letter}{Editor \\
+               Physical Review B \\
+               American Physical Society}
+
+\opening{Dear Editor,}
+
+We are pleased to submit our manuscript entitled ``Data-efficient machine-learning of complex Fe--Mo intermetallics using domain knowledge of chemistry and crystallography'' for consideration as a Regular Article in Physical Review B.
+
+Topologically close-packed (TCP) phases are critical precipitates in high-performance alloys, yet their large unit cells make exhaustive first-principles screening prohibitively expensive. In this work, we demonstrate that machine-learning models trained on only 262 DFT calculations of simple TCP phases can accurately predict the formation energies of complex TCP phases (R, M, P, $\delta$)---provided the feature representation is informed by domain knowledge of chemistry and crystallography. We introduce coordination-number-resolved averaging (CNAV), a crystallography-aware feature aggregation scheme, and compare three families of local structural descriptors (BOP, ACE, SOAP). Our best models achieve validation RMSE values of 35--42~meV/atom for complex phases, and the predicted energies yield R-phase sublattice occupancies in quantitative agreement with experimental XRD data.
+
+We believe this work is well-suited for Physical Review B because it addresses a fundamental challenge in condensed matter physics: the interplay between structural complexity, bonding, and phase stability in transition-metal intermetallics. The paper combines electronic-structure theory (DFT, tight-binding BOP), machine learning, and thermodynamic modelling within a unified framework.
+
+We suggest the following expert reviewers:
+\begin{itemize}
+  \item G\'abor Cs\'anyi (University of Cambridge) --- ML interatomic potentials, SOAP descriptors
+  \item Gus Hart (Brigham Young University) --- First-principles thermodynamics, alloy theory
+  \item J\"org Neugebauer (Max-Planck-Institut f\"ur Eisenforschung) --- DFT of intermetallics, computational materials science
+\end{itemize}
+
+The manuscript has not been published previously and is not under consideration elsewhere. All authors have approved the submission.
+
+\closing{Sincerely,}
+
+Mariano Forti \\
+on behalf of all authors
+
+\end{letter}
+
+\end{document}

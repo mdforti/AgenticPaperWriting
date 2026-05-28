@@ -1,0 +1,62 @@
+% npj Computational Materials style (approximation)
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{npjcm}[2026/05/28 npj Computational Materials style]
+
+% Page geometry
+\RequirePackage[letterpaper,top=1in,bottom=1in,left=1in,right=1in]{geometry}
+\RequirePackage{setspace}
+\doublespacing
+
+% Fonts
+\RequirePackage[T1]{fontenc}
+\RequirePackage{lmodern}
+
+% Math
+\RequirePackage{amsmath,amssymb,amsthm}
+\RequirePackage{siunitx}
+\sisetup{per-mode=symbol}
+
+% Graphics
+\RequirePackage{graphicx}
+\RequirePackage[font=small,labelfont=bf]{caption}
+\RequirePackage[font=small]{subcaption}
+
+% Tables
+\RequirePackage{booktabs}
+\RequirePackage{array}
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+% Hyperlinks (must be before cleveref)
+\RequirePackage[colorlinks=true,allcolors=blue]{hyperref}
+
+% Cross-referencing (must be after hyperref)
+\RequirePackage[capitalize]{cleveref}
+
+% Bibliography
+\RequirePackage[numbers,sort&compress]{natbib}
+
+% Section formatting
+\RequirePackage{titlesec}
+\titleformat{\section}{\large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{1em}{}
+
+% Author/affiliation
+\RequirePackage{authblk}
+
+% Numbered environments
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{definition}{Definition}[section]
+
+% Abstract
+\renewenvironment{abstract}
+  {\noindent\textbf{Abstract}\par\noindent\ignorespaces}
+  {\par\vspace{1em}}
+
+% Unit shortcuts
+\newcommand{\meV}{\ensuremath{\,\mathrm{meV}}}
+\newcommand{\eVat}{\ensuremath{\,\mathrm{eV/atom}}}
+\newcommand{\meVat}{\ensuremath{\,\mathrm{meV/atom}}}
+
+\endinput

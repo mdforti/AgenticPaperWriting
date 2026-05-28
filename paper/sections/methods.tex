@@ -1,0 +1,73 @@
+% Methods section
+
+\subsection{DFT Calculations}
+
+All density-functional theory (DFT) calculations were performed using the Vienna Ab initio Simulation Package (VASP~\cite{vasp}) with the projector augmented wave (PAW) method~\cite{paw} and the Perdew--Burke--Ernzerhof (PBE) exchange-correlation functional~\cite{pbe}. The plane-wave energy cutoff was set to 400--450 eV, and Monkhorst--Pack $k$-point meshes~\cite{monkhorst_pack} were chosen to ensure total energy convergence to within 1~\meVat. For TCP phases with large unit cells (R, M, P, $\delta$), single $k$-point calculations at the $\Gamma$-centred point were used, while denser meshes were employed for the smaller simple TCP phases.
+
+For each structure, we performed a series of constant-volume calculations spanning a range of volumes around the equilibrium, followed by $E$--$V$ curve fitting using the Birch--Murnaghan equation of state (EOS)~\cite{birch_murnaghan} to obtain the equilibrium volume $V_0$, bulk modulus $B_0$, and the equilibrium formation energy. This procedure eliminates Pulay stress errors and ensures consistency across structures with different cell sizes and shapes.
+
+The target property for machine learning was the formation energy referenced to non-magnetic (NM) hcp Fe and hcp Mo, denoted $E_f^{nmhcp}$. This reference state was chosen to eliminate magnetic contributions that are not present in the non-magnetic TCP phases, ensuring a clean target for the ML models.
+
+\subsection{Descriptor Computation}
+
+\subsubsection*{BOP Moments}
+
+Bond-order potential (BOP) moments were computed using the BOPfox code~\cite{bopfox}. We employed a canonical $d$-band tight-binding Hamiltonian with a rectangular $d$-band model. For each atom, the first four moments of the local density of states ($\mu_0$, $\mu_1$, $\mu_2$, $\mu_3$) were computed from the crystal structure. Two projection schemes were used: (i) \textbf{canonical}---moments from the pure tight-binding Hamiltonian, yielding 405-dimensional feature vectors after CNAV; and (ii) \textbf{0.7dProjections 0.5OS}---moments projected onto DFT-calculated local densities of states using a scissor operator, yielding 417-dimensional feature vectors. The latter gave consistently better performance.
+
+\subsubsection*{ACE Descriptors}
+
+Atomic cluster expansion (ACE) descriptors~\cite{ace} were computed using the \texttt{python-ace} package. The ACE framework provides a complete linear basis of rotationally invariant many-body functions of the local atomic environment. We used a cutoff radius of \SI{6.0}{\textnormal{~\AA}}, correlation orders 2--4, and radial basis functions spaced at \SI{0.5}{\textnormal{~\AA}} intervals. The full ACE basis yielded up to 1803 features per structure. A ``canonical'' variant using only the dominant radial basis functions reduced this to 417 features while retaining most of the predictive accuracy.
+
+\subsubsection*{SOAP Descriptors}
+
+Smooth overlap of atomic positions (SOAP) descriptors~\cite{soap} were computed using the DScribe library (v2.0)~\cite{dsribe}. The SOAP power spectrum was calculated with: $r_\text{cut} = \SI{6.0}{\textnormal{~\AA}}$, $n_\text{max} = 8$ radial basis functions, and $l_\text{max} = 6$ spherical harmonics. Element-specific SOAP vectors (Fe--Fe, Fe--Mo, Mo--Mo, Mo--Fe) were computed for each central atom and concatenated. The resulting per-atom SOAP vectors had dimension~287 after CNAV aggregation.
+
+\subsubsection*{CNAV Aggregation}
+
+For each structure, the per-atom descriptor vectors were averaged within groups sharing the same coordination number (CN). The CN for each atom was determined from the ACE radial function analysis using a cutoff of \SI{3.5}{\textnormal{~\AA}} for the first shell. The CN-resolved averages were concatenated into a single structure-level fingerprint, with the number of CN groups varying between 3 and 6 depending on the phase.
+
+\subsection{Model Training and Evaluation}
+
+All machine learning models were implemented using scikit-learn (v1.2)~\cite{sklearn}. The training/test split (209/53) was stratified by phase to ensure that each simple TCP phase was represented in both sets. Features were standardised to zero mean and unit variance using the training set statistics.
+
+\subsubsection*{Model Selection}
+
+Three regression algorithms were considered:
+
+\begin{enumerate}
+  \item \textbf{Kernel Ridge Regression (KRR):} RBF kernel with $\alpha \in [10^{-4}, 10^{-2}]$ and $\gamma \in [10^{-4}, 10^{-1}]$ optimised via grid search with 5-fold cross-validation (CV).
+  \item \textbf{Random Forest (RF):} 200 trees, $\text{max\_depth} \in [10, 50]$ and $\text{min\_samples\_leaf} \in [1, 10]$ optimised via grid search with 5-fold CV.
+  \item \textbf{Multi-Layer Perceptron (MLP):} Single hidden layer with 64 neurons, ReLU activation, trained with Adam optimiser (learning rate $10^{-3}$) for up to 1000 epochs with early stopping. Regularisation parameter $\alpha \in [10^{-4}, 10^{-2}]$ was optimised via 5-fold CV.
+\end{enumerate}
+
+\subsubsection*{Ensemble Construction}
+
+For each feature set, a VotingRegressor ensemble was constructed by averaging the predictions of the three optimally tuned models (KRR, RF, MLP). This approach consistently outperformed individual models, with the ensemble RMSE being 5--15\% lower than the best individual model.
+
+\subsubsection*{Feature Selection}
+
+Forward recursive feature selection was performed separately for each model/feature combination. Starting from the full feature set, features were added one at a time based on the improvement in 5-fold CV RMSE. Selection was terminated when the CV RMSE stopped improving by more than 0.5~\meVat. This procedure reduced the dimensionality by factors of 2--10 depending on the feature set (from $\sim$400--1800 to $\sim$50--300). Feature selection was embarrassingly parallel and was executed on the cluster using 16 cores per job.
+
+\subsubsection*{Evaluation Metrics}
+
+Model performance was evaluated using:
+\begin{align}
+  \text{RMSE} &= \sqrt{\frac{1}{N} \sum_{i=1}^{N} (y_i - \hat{y}_i)^2}, \\
+  \text{MAE} &= \frac{1}{N} \sum_{i=1}^{N} |y_i - \hat{y}_i|.
+\end{align}
+Both metrics were computed on the test set (53 structures) and the independent validation set (70 structures).
+
+\subsection{Thermodynamic Modelling}
+
+Finite-temperature thermodynamic properties were computed within the compound energy formalism (CEF) using the Bragg--Williams (BW) approximation, as implemented in the \texttt{pycef} code. The Gibbs free energy of each phase is given by:
+
+\begin{equation}
+  G = \sum_i y_i G_i^\circ + RT \sum_s \sum_i y_i^{(s)} \ln y_i^{(s)} + G^E
+  \label{eq:gibbs}
+\end{equation}
+
+where $y_i^{(s)}$ is the site fraction of species $i$ on sublattice $s$, $G_i^\circ$ is the ML-predicted formation energy of the end-member compound, and $G^E$ is the excess Gibbs free energy (set to zero for the ideal Bragg--Williams approximation). Sublattice occupancies were obtained by minimising the Gibbs free energy with respect to site fractions at fixed temperature and composition, using a sequential least-squares programming (SLSQP) optimiser~\cite{slsqp}.
+
+\subsection{Data and Code Availability}
+
+All DFT input and output files, pre-computed descriptors, ML model parameters, and prediction results are deposited in the Zenodo repository (DOI: \texttt{10.5281/zenodo.19427673}). The full pipeline code and Jupyter notebooks are available on GitHub at \url{https://github.com/AIIMProject/MLFeMoTCPs}. The BOPfox code used for BOP descriptor computation is available from the authors upon reasonable request.

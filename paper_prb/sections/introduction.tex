@@ -1,0 +1,17 @@
+% Introduction section
+
+Topologically close-packed (TCP) phases are intermetallic compounds that commonly precipitate in high-performance steels and nickel-based superalloys during service at elevated temperatures~\cite{smith_tcp, joubert_tcp}. Their formation---often undesirable---can degrade mechanical properties by consuming solid-solution strengtheners and acting as crack initiation sites. Among binary transition-metal systems, Fe--Mo stands out as a model system for studying TCP phases because of the remarkable diversity of polymorphs it hosts: the simple TCP phases A15, C15, C14, C36, $\sigma$, $\chi$, and $\mu$ (each with 2--5 inequivalent Wyckoff sites) coexist with the structurally complex R, M, P, and $\delta$ phases, whose large unit cells contain 11--14 distinct Wyckoff sites each~\cite{crivello_tcp, joubert_fe_mo}.
+
+First-principles density-functional theory (DFT) is the workhorse for predicting formation energies of solid-state compounds, but its computational cost scales steeply with the number of atoms in the unit cell. For the complex TCP phases of Fe--Mo---whose primitive cells contain dozens of atoms---exhaustive DFT sampling across composition and site-occupancy space is prohibitively expensive. This data-scarcity problem motivates the search for machine-learning (ML) surrogate models that can accelerate materials discovery by learning from a modest number of DFT calculations.
+
+The central hypothesis of this work is that \textbf{domain knowledge of chemistry and crystallography can compensate for small training-set size}, enabling ML models trained exclusively on simple TCP structures to generalise to complex TCP phases. We encode domain knowledge at three complementary levels:
+
+\begin{enumerate}
+  \item \textbf{Chemistry} --- Vegard's-law-like volume scaling captures the systematic variation of formation energy with average atomic volume as a function of composition.
+  \item \textbf{Crystallography} --- Coordination-number-resolved averaging (CNAV) condenses local structural information into coarse-grained fingerprints that respect the distinct crystallographic environments of each Wyckoff site.
+  \item \textbf{Local bonding} --- Three families of atom-centred descriptors are compared: bond-order potential (BOP) moments from a canonical tight-binding Hamiltonian~\cite{bopfox}, atomic cluster expansion (ACE) descriptors~\cite{ace}, and smooth overlap of atomic positions (SOAP) fingerprints~\cite{soap}.
+\end{enumerate}
+
+Using these features, we train kernel ridge regression (KRR), random forest (RF), and multi-layer perceptron (MLP) models---combined into a VotingRegressor ensemble---on 262 DFT-calculated structures of simple TCP phases. Despite never seeing a single complex TCP structure during training, the models achieve test-set RMSE values in the range 20--60~\meVat and accurately predict formation energies of R, M, P, and $\delta$ phases when validated against 70 independent DFT calculations.
+
+Beyond formation energies, we show that the ML-predicted energies, when combined with the Bragg--Williams approximation within the compound energy formalism (CEF), yield finite-temperature sublattice occupancies. For the R phase, these predicted occupancies are in good agreement with experimental X-ray diffraction data, demonstrating that the data-efficient ML strategy extends to thermodynamic properties relevant to alloy design.

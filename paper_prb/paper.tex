@@ -1,0 +1,77 @@
+\documentclass[prb,twocolumn,aps,showpacs,superscriptaddress]{revtex4-2}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage[separate-uncertainty=true,per-mode=symbol]{siunitx}
+\usepackage{hyperref}
+
+\newcommand{\meV}{\ensuremath{\,\mathrm{meV}}}
+\newcommand{\eVat}{\ensuremath{\,\mathrm{eV/atom}}}
+\newcommand{\meVat}{\ensuremath{\,\mathrm{meV/atom}}}
+
+\begin{document}
+
+\title{Data-efficient machine-learning of complex Fe--Mo intermetallics \\
+        using domain knowledge of chemistry and crystallography}
+
+\author{Mariano Forti}
+\affiliation{Interdisciplinary Centre for Advanced Materials Simulation (ICAMS), Ruhr-Universit\"at Bochum, 44801 Bochum, Germany}
+
+\author{Alesya Malakhova}
+\affiliation{Research Department Materials Informatics, Ruhr-Universit\"at Bochum, 44801 Bochum, Germany}
+\affiliation{Interdisciplinary Centre for Advanced Materials Simulation (ICAMS), Ruhr-Universit\"at Bochum, 44801 Bochum, Germany}
+
+\author{Yury Lysogorskiy}
+\affiliation{Research Department Materials Informatics, Ruhr-Universit\"at Bochum, 44801 Bochum, Germany}
+\affiliation{Interdisciplinary Centre for Advanced Materials Simulation (ICAMS), Ruhr-Universit\"at Bochum, 44801 Bochum, Germany}
+
+\author{Wenhao Zhang}
+\affiliation{ICAMS, Ruhr-Universit\"at Bochum / CNRS-Saint-Gobain-NIMS, National Institute for Materials Science, Tsukuba, Japan}
+
+\author{Jean-Claude Crivello}
+\affiliation{Universit\'e Paris-Est, ICMPE (UMR 7182), CNRS-UPEC, F-94320 Thiais, France}
+
+\author{Jean-Marc Joubert}
+\affiliation{Universit\'e Paris-Est, ICMPE (UMR 7182), CNRS-UPEC, F-94320 Thiais, France}
+
+\author{Ralf Drautz}
+\affiliation{Interdisciplinary Centre for Advanced Materials Simulation (ICAMS), Ruhr-Universit\"at Bochum, 44801 Bochum, Germany}
+\affiliation{Research Department Materials Informatics, Ruhr-Universit\"at Bochum, 44801 Bochum, Germany}
+
+\author{Thomas Hammerschmidt}
+\affiliation{Interdisciplinary Centre for Advanced Materials Simulation (ICAMS), Ruhr-Universit\"at Bochum, 44801 Bochum, Germany}
+\affiliation{Research Department Materials Informatics, Ruhr-Universit\"at Bochum, 44801 Bochum, Germany}
+
+\date{\today}
+
+\begin{abstract}
+Topologically close-packed (TCP) intermetallic phases in the Fe--Mo binary system span a remarkable structural hierarchy---from simple phases with 2--5 Wyckoff sites (A15, C15, C14, C36, $\sigma$, $\chi$, $\mu$) to complex phases with 11--14 sites (R, M, P, $\delta$). Predicting the formation energies and sublattice occupancies of these complex phases from first principles is challenging because density-functional theory (DFT) calculations for large-unit-cell TCP structures are computationally expensive. Here we show that machine-learning (ML) models trained exclusively on 262 DFT calculations of simple TCP phases can accurately predict the properties of complex TCP phases, provided the feature representation is informed by domain knowledge of chemistry and crystallography. We encode this knowledge at three levels: (i) Vegard's-law volume scaling (chemistry), (ii) coordination-number-resolved averaging (CNAV) of local descriptors (crystallography), and (iii) bond-order potential (BOP) moments, atomic cluster expansion (ACE) descriptors, and smooth overlap of atomic positions (SOAP) fingerprints (local bonding). A VotingRegressor ensemble combining kernel ridge regression, random forest, and neural network models achieves test-set RMSE values of 20--60~\meVat. Validation against 70 independent DFT calculations of R-, M-, P-, and $\delta$-phase structures confirms that BOP descriptors, in particular, enable accurate transfer from simple to complex phases. Using the Bragg--Williams approximation within the compound energy formalism, the ML-predicted energies yield finite-temperature sublattice occupancies in quantitative agreement with experimental X-ray diffraction data for the R phase. Our results demonstrate that domain knowledge can reduce the required DFT training data by an order of magnitude, opening the door to efficient computational screening of TCP phase stability in multi-component alloys.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+\input{sections/introduction}
+
+\section{Results}
+\input{sections/results}
+
+\section{Discussion}
+\input{sections/discussion}
+
+\section{Methods}
+\input{sections/methods}
+
+\section{Conclusions}
+\input{sections/conclusions}
+
+\begin{acknowledgments}
+The authors acknowledge funding from the German Research Foundation (DFG) and computational resources provided by the Ruhr-University Bochum.
+\end{acknowledgments}
+
+\bibliographystyle{apsrev4-2}
+\bibliography{references}
+
+\end{document}

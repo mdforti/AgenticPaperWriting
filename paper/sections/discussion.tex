@@ -1,0 +1,17 @@
+% Discussion section
+
+\subsection{Why does the simple-to-complex transfer work?}
+
+The success of this approach rests on three pillars. First, the local bonding environments in complex TCP phases are built from the same motifs as those in simple TCP phases: tetrahedrally close-packed coordination polyhedra around sites with CN 12, 14, 15, and 16~\cite{joubert_tcp}. Second, the CNAV feature representation explicitly preserves this crystallographic information by treating different CN environments separately. Third, BOP descriptors---derived from a physically motivated tight-binding model---capture the essential chemistry of $d$-band filling and hybridisation that governs the relative stability of TCP phases~\cite{bopfox, drautz_bop}.
+
+\subsection{Comparison with alternative methods}
+
+Direct DFT calculation of all relevant R-, M-, P-, and $\delta$-phase configurations at every composition would require thousands of calculations. Our approach achieves useful accuracy with fewer than 300 training calculations---a reduction of approximately an order of magnitude. Alternative ML strategies that use only generic composition-based descriptors (e.g., Magpie features~\cite{magpie}) or structure-agnostic fingerprints struggle to capture the subtle energy differences between competing TCP polymorphs (Table~\ref{tab:test_performance}, ``Dataset'' row), underscoring the value of crystallographic domain knowledge.
+
+\subsection{Generality and limitations}
+
+The methodology developed here is transferable to other transition-metal binary systems that host TCP phases (e.g., Fe--W, Co--Mo, Ni--Cr--Mo). The key requirement is a reliable method for generating training structures and computing local descriptors. Limitations include: (i) accuracy degrades for configurations near the convex hull where multiple polymorphs are nearly degenerate; (ii) the current approach assumes non-magnetic reference states---magnetic contributions, while small for Fe--Mo TCP phases, would need to be included for Fe-rich compositions; and (iii) the requirement for DFT-calculated training data means that the initial investment in DFT calculations, while modest, is not zero.
+
+\subsection{Data efficiency implications}
+
+Our results demonstrate a general principle: when training data is scarce, domain knowledge is not merely helpful---it is essential. The factor-of-ten reduction in required DFT calculations opens the door to ML-driven exploration of TCP phase stability in multi-component alloys, where exhaustive DFT sampling is even more impractical.

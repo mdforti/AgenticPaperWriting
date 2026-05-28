@@ -1,0 +1,14 @@
+% Conclusions section
+
+We have developed a data-efficient machine-learning framework for predicting the formation energies and sublattice occupancies of complex TCP intermetallic phases in the Fe--Mo binary system. By encoding domain knowledge of chemistry, crystallography, and local bonding into the feature representation, we achieve accurate predictions using only 262 DFT training structures of simple TCP phases.
+
+Key findings include:
+
+\begin{enumerate}
+  \item BOP descriptors, derived from a canonical tight-binding model, provide the most transferable and accurate features for TCP energy prediction, outperforming ACE and SOAP across all test and validation sets.
+  \item Coordination-number-resolved averaging (CNAV) improves prediction accuracy by 20--40\% compared with conventional structure-level averaging, demonstrating the value of explicit crystallographic knowledge.
+  \item The VotingRegressor ensemble of KRR, RF, and MLP models ensures robust predictions, with ensemble averaging providing greater benefit in the small-data regime.
+  \item Predicted formation energies, when used within the Bragg--Williams--CEF thermodynamic framework, yield sublattice occupancies consistent with experimental X-ray diffraction data for the R phase.
+\end{enumerate}
+
+This work establishes a pathway for efficient computational discovery of TCP phase stability in multi-principal element alloys, where the combinatorial explosion of possible configurations makes exhaustive DFT sampling infeasible.
