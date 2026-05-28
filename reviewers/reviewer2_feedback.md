@@ -1,39 +1,25 @@
-# Review by Reviewer 2 — Machine Learning for Materials Science
+# Reviewer 2 Feedback
 
-## (i) Summary
+## Summary
+The manuscript presents a thoughtful small-data learning workflow for complex Fe--Mo TCP phases and contains several good methodological ingredients, including stratified splitting, recursive feature selection, a comparison across descriptor families, and a downstream thermodynamic use case. The topic is appropriate for Physical Review B and of clear interest to the materials-ML community. My main concern is not the overall direction but the level of quantitative reporting. Several claims are presently easier to infer from the repository notebooks than to verify directly from the manuscript. In particular, the external-validation metrics, the mean-absolute-error reporting, and the details of the ensemble construction should be documented more fully.
 
-This paper proposes a domain-knowledge-informed machine-learning pipeline to predict formation energies of complex Fe–Mo TCP intermetallics using only 262 DFT training structures of simple phases. The authors compare BOP, ACE, and SOAP descriptors, aggregated via coordination-number-resolved averaging (CNAV), and use a VotingRegressor ensemble (KRR + RF + MLP). The best model achieves test RMSE of 28 meV/atom and validation RMSE of 35–42 meV/atom for complex phases. The predicted energies are then used in a CEF/Bragg–Williams thermodynamic framework to compute R-phase sublattice occupancies that agree with XRD experiments.
+## Major comments
+1. The train/test/CV protocol is promising but needs to be reported more explicitly. The manuscript states that a phase-stratified 80/20 split is used and that recursive feature selection is nested inside fivefold stratified cross-validation on the training subset. This is good practice. However, the paper should say plainly whether the final test set remains untouched during feature ranking, hyperparameter optimization, and voting-regressor construction for every descriptor family. A concise workflow diagram or paragraph with the exact order of operations would eliminate any concern about leakage.
 
-The paper addresses a genuinely hard problem (small-data regime, transfer across structural families) and the domain-knowledge encoding strategy is principled. I have several concerns regarding the rigour of the ML evaluation, particularly around statistical significance, data leakage, and uncertainty quantification.
+2. The manuscript currently reports a strong RMSE table for the internal test split but does not provide the corresponding MAE and $R^2$ values, although the notebooks compute them. For a small-data benchmark paper, these additional metrics are not optional. The authors should add a supplementary table, or expand Table I, to include MAE and ideally $R^2$ for the principal models.
 
-## (ii) Major Comments
+3. The external validation on $R$, $P$, $M$, and $\delta$ must be tabulated. Right now the text says that the parity notebook computes and annotates phase-resolved RMSE values, but the manuscript leaves them qualitative. This is the central transfer-learning result and must be shown numerically for each descriptor family and phase.
 
-**1. Data leakage in feature selection.**
-The Methods section states that forward recursive feature selection was "performed separately for each model/feature combination" and terminated when CV RMSE stopped improving. However, the authors do not specify whether feature selection was nested *inside* the cross-validation loop or performed on the full training set before cross-validation. If feature selection was performed on the full 209-structure training set and then evaluated via 5-fold CV, this constitutes data leakage — the feature selector has seen all training data, and the CV estimate will be optimistically biased. The authors must clarify and, if the latter case applies, re-run the analysis with nested CV.
+4. The role of the VotingRegressor is underexplained. The paper states that it combines independently fitted pipelines, but it does not say how many constituent estimators are used, whether they differ by random seed, feature subsets, or folds, and how the reported uncertainty proxy `std_votes` should be interpreted. Since the validation notebook exposes this quantity explicitly, the manuscript should explain it.
 
-**2. Statistical significance of descriptor ranking.**
-The central claim is BOP > ACE > SOAP. Table I shows RMSE values of 28, 35, and 42 meV/atom for BOP, ACE, and SOAP, respectively. No confidence intervals or error bars are provided for these values. Given the small test set (53 structures), the uncertainty on the RMSE estimate is non-trivial. I request that the authors report 95% confidence intervals for all RMSE values (e.g., via bootstrap or the standard formula assuming normality of residuals). Without this, the reader cannot assess whether the BOP advantage over ACE is statistically significant.
+5. The comparison between ACE and BOP needs more nuance. The internal test table shows ACE/KRR with the lowest RMSE, while the Discussion emphasizes BOP as the preferred descriptor. That may be justified by external transfer and physical interpretability, but the manuscript should make the distinction explicit rather than implying that one descriptor wins uniformly across all criteria.
 
-**3. Single train/test split.**
-The reported results rely on a single stratified 80/20 split (209/53). With only 262 total structures, the results may be sensitive to the specific split. The authors should report results from at least 10 repeated random stratified splits, or use leave-one-phase-out cross-validation to demonstrate robustness. The current single-split evaluation is a weakness for a paper where the key claim is about generalisation.
+## Minor comments
+1. Please report the exact scikit-learn version used for the archived models.
+2. The manuscript would benefit from a short paragraph on why the archived MLP grid uses logistic activations and `lbfgs`, which differs from more common modern choices.
+3. The starting feature counts are useful; please also state the final retained feature counts for the best ACE, BOP, and SOAP pipelines.
+4. If possible, include confidence intervals or repeated-split variability for the internal benchmark, especially because the data set is modest in size.
+5. The manuscript should distinguish clearly between the curated 292-structure count and the 261 structures actually scored in the downstream analysis.
 
-**4. Learning curves.**
-For a paper emphasising data efficiency, the absence of learning curves is a surprising omission. The claim that "domain knowledge compensates for small training-set size" would be strongly supported by showing RMSE as a function of training-set size (e.g., N = 50, 100, 150, 209). This would also demonstrate whether the advantage of BOP over ACE/SOAP persists across all data regimes or emerges only at larger training set sizes.
-
-**5. Hyperparameter optimisation details.**
-The hyperparameter ranges are given only sparsely (e.g., α ∈ [10⁻⁴, 10⁻²], γ ∈ [10⁻⁴, 10⁻¹]). Were these ranges determined by preliminary experiments? Were the optimised hyperparameters stable across cross-validation folds? The authors should report the chosen hyperparameters for each model/feature combination and discuss whether they differ systematically across descriptor families.
-
-**6. Reproducibility.**
-The scikit-learn version is given (v1.2), but random seeds are not reported. For ensemble methods (RF) and neural networks (MLP), determinism requires fixing multiple random seeds (numpy, sklearn, Python random). The authors should specify all random seeds used and confirm that the results are reproducible.
-
-## (iii) Minor Comments
-
-1. The VotingRegressor averages predictions of KRR, RF, and MLP. Were the individual models' predictions on a common scale before averaging? If RMSE values differ substantially between models, a simple average may not be optimal — a weighted ensemble could perform better.
-2. The Magpie baseline is labelled "Dataset (magpie)" in Table I. Was Magpie computed using the full 262-structure composition information or only the simple-phase training set? Please clarify.
-3. Feature selection termination criterion: "when CV RMSE stopped improving by more than 0.5 meV/atom" — 0.5 meV/atom seems tight given the overall RMSE values. How sensitive are the results to this threshold? A sensitivity analysis would be informative.
-4. The CNAV approach reduces dimensionality but also changes the feature space qualitatively. The claim that CNAV "improves RMSE by 20–40%" is based on a supplementary figure that was not included in the review. Please include the non-CNAV baseline RMSE in the main text for completeness.
-5. The paper would benefit from a parity plot with colour-coding by phase to visually assess systematic biases (e.g., all σ-phase points above the diagonal).
-
-## (iv) Recommendation
-
-**Major Revision.** The core ML approach is well-motivated and the results are promising, but the evaluation methodology needs strengthening in several critical areas: nested CV, confidence intervals, multiple train/test splits, and learning curves. These are standard expectations for ML in materials science publications. Once addressed, the paper would be suitable for PRB.
+## Recommendation
+Major Revision

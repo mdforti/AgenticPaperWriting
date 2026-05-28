@@ -1,0 +1,38 @@
+# Referee Report — Reviewer 2 (Metallurgy and Computational Materials Science)
+
+**Manuscript:** "Data-efficient machine learning of complex Fe–Mo topologically close-packed intermetallics using domain knowledge of chemistry and crystallography"  
+**Report round:** 1
+
+---
+
+## Summary
+
+The manuscript presents a machine-learning study of formation enthalpies in the Fe–Mo binary TCP system using a DFT dataset of 292 structures and three distinct descriptor families. The main technical contribution is the coordination-number-resolved averaging (CNAV) scheme, which exploits the Frank–Kasper site hierarchy to construct physically informed structure vectors. The metallurgical strength of the work lies in the inclusion of thermodynamic post-processing via the Bragg–Williams/CEF formalism and the comparison of predicted R-phase sublattice occupancies with experimental XRD data, which transforms an otherwise purely methodological paper into one with clear physical relevance. The main weakness is insufficient documentation of the electronic structure calculations — specifically the smearing method and its width — and some ambiguity about whether the k-point density is adequate for the large-unit-cell TCP phases. The paper is suitable for PRB in scope and addresses an important problem, but several points require clarification or additional information before it meets journal standards.
+
+---
+
+## Major Comments
+
+**1. Electronic smearing method not documented.** The DFT setup describes the plane-wave cutoff (450 eV), the k-point density (Δk = 0.020 Å⁻¹), the pseudopotentials (Fe_pv, Mo_sv), and the exchange-correlation functional (PBE), but does not state the Fermi-level smearing method or smearing width used in VASP. For metallic systems this is not a trivial omission: the choice between Methfessel–Paxton smearing (the standard for metals in VASP), Gaussian smearing, or the tetrahedron method, and the choice of smearing width, can affect total energies and formation enthalpies by several meV/atom in the near-hull energy range where phase competition occurs in Fe–Mo. The manuscript must state the smearing method and width used in the DFT calculations and, if multiple smearing schemes were tested, report the convergence behaviour.
+
+---
+
+## Minor Comments
+
+**1. K-point convergence for large-unit-cell TCP phases.** The k-point density of Δk = 0.020 Å⁻¹ is specified, but for the R phase with 53 atoms per primitive cell and linear dimensions of roughly 10–11 Å, this density corresponds to a 1×1×1 or 2×2×2 Monkhorst–Pack mesh depending on the cell parameters. The manuscript does not verify whether this density is sufficient for energy-volume convergence in the complex TCP structures. A brief statement that k-point convergence was verified (for example, by comparing the equilibrium formation enthalpy for a representative R-phase structure with and without a denser mesh) would substantially strengthen the DFT methodology discussion.
+
+**2. Reference state definition for elemental R-phase endpoints.** The dataset includes elemental compositions of the R-phase structure (i.e., pure Fe and pure Mo in the R-phase arrangement), and the formation enthalpy target is $E_F^\text{nmhcp}$. The text defines this as "non-magnetic hcp Fe and non-magnetic bcc Mo" references, which is clear. However, the dataset also appears to include FM calculations, and the manuscript states that the target property used for learning was the NM-referenced $E_F^\text{nmhcp}$ regardless of whether the individual structure calculation was NM or FM. This means that for FM structures the target is the formation enthalpy of the ferromagnetic structure relative to the NM elemental references, which implicitly conflates magnetic and structural contributions. While this convention is used in the TCP literature, the authors should acknowledge explicitly that this treatment merges the structural and magnetic degrees of freedom and discuss whether this choice affects the model's ability to distinguish magnetically stabilised structures from structurally stabilised ones.
+
+**3. Equilibrium volume and equation of state fitting.** The manuscript states that equilibrium energies were obtained from Murnaghan equation-of-state fitting of energy–volume curves. This is standard, but the text does not state the number of volume points used or the range of volume variation explored. For large-unit-cell structures like the R and δ phases, a coarse E–V sampling can produce inaccurate equilibrium volumes and formation enthalpies. A sentence describing the E–V sampling (e.g., "seven volume points spanning ±10% of the estimated equilibrium volume") would remove ambiguity.
+
+**4. Magnetic moment versus non-magnetic reference.** The manuscript notes that both NM and FM calculations were performed. For Fe-rich compositions, the FM states are typically substantially lower in energy than NM states, and the non-magnetic hcp Fe reference is approximately 100 meV/atom higher in energy than FM bcc Fe. The choice of NM-hcp Fe as a reference is therefore physically non-standard (though used in BOP-context papers). The Discussion acknowledges this limitation in one sentence but does not quantify its effect. Since the energy reference choice can shift all formation enthalpies by a systematic offset that depends on Fe content, the authors should at minimum state whether models trained on $E_F^\text{nmhcp}$ would give the same RMSE ranking if the target were redefined relative to FM-bcc Fe or to the experimental room-temperature reference states.
+
+**5. Phase diagram context for 1700 K thermodynamics.** The Bragg–Williams calculations are performed at 1700 K. The Fe–Mo phase diagram shows the R phase to be stable between approximately 1200 K and 1700 K for Fe-rich compositions (around x_Fe = 0.28–0.38), and the liquidus in this region is approximately 1850–1900 K. The choice of 1700 K is therefore close to the upper stability limit of the R phase and the lower bound of the liquid region. The thermodynamic analysis would benefit from a sentence placing this temperature choice in the context of the known phase diagram, explaining why 1700 K was chosen and whether the R-phase occupancy comparison with experimental XRD data (which was presumably measured at room temperature after high-temperature equilibration) is expected to be sensitive to this temperature choice.
+
+**6. Source of experimental XRD occupancy data.** The manuscript cites Joubert and Crivello (2012) as the source of the experimental sublattice occupancy data used in the comparison. This is appropriate if the FeMo.csv data indeed originate from that reference. However, the manuscript should clarify that the XRD data were obtained by Joubert and Crivello from experimental measurements and should specify the nominal experimental temperature (typically room temperature) of the reported occupancies, in contrast to the 1700 K temperature used in the calculation. If the experimental occupancies were measured at a different composition than that used in the model, this should be noted.
+
+---
+
+## Recommendation
+
+I recommend publication in Physical Review B after major revision. The major comment concerns the missing documentation of the electronic smearing procedure, which is an essential DFT methodological detail in a paper that makes quantitative claims about meV-scale energy differences. The minor comments are substantive but not blocking. Once the major issue is resolved and the minor points are addressed, the manuscript will present a physically well-motivated and technically sound contribution to the Fe–Mo TCP phase field.

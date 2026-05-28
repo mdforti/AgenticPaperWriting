@@ -1,36 +1,25 @@
-# Review by Reviewer 1 — Computational Materials Physicist (DFT & Tight-Binding)
+# Reviewer 1 Feedback
 
-## (i) Summary
+## Summary
+This manuscript addresses an important and difficult problem, namely the prediction of TCP-phase energetics in Fe--Mo from a comparatively small DFT data set using physically informed descriptors. I find the general strategy attractive, particularly the attempt to combine local bond-order-potential moments with coordination-number-resolved averaging and then to test the resulting models on more complex phases. The manuscript is readable and already contains several technically useful details. However, in its present form it does not yet meet the standard expected for a Physical Review B article because the electronic-structure provenance is not sufficiently sharp, the descriptor comparison is not always disentangled from differences in archived workflows, and the external-validation evidence is described qualitatively where quantitative reporting is required.
 
-This manuscript presents a machine-learning framework for predicting formation energies and sublattice occupancies of topologically close-packed (TCP) intermetallic phases in the Fe–Mo binary system. The authors train models on 262 DFT calculations of simple TCP phases (A15, C15, C14, C36, σ, χ, μ) and demonstrate transferability to structurally complex phases (R, M, P, δ) with 11–14 Wyckoff sites. A key methodological contribution is coordination-number-resolved averaging (CNAV) of local structural descriptors. Three descriptor families are compared: bond-order potential (BOP) moments, atomic cluster expansion (ACE), and smooth overlap of atomic positions (SOAP). The BOP descriptors, derived from a canonical d-band tight-binding Hamiltonian, are found to consistently outperform ACE and SOAP.
+## Major comments
+1. The DFT methodology section must be made more internally consistent. The manuscript correctly notes that the repository exposes a nonmagnetic setup file with `ENCUT=500 eV`, `ISMEAR=0`, `SIGMA=0.2 eV`, and `kmesh_spacing=0.125 Å^{-1}`, but it also states that the curated tables are dominated by 450 eV and `Δk≈0.02 Å^{-1}` entries. At present this reads as a mixture of two workflows rather than as a clean production protocol. The authors should identify which settings correspond to the actual training data, which correspond to the later validation workflow, and whether all structures were recomputed consistently before model fitting. A referee cannot assess the reliability of the energetic ranking without this provenance.
 
-The topic is relevant and the experimental-theoretical cross-validation (XRD sublattice occupancies) is commendable. However, several aspects of the DFT methodology and the physical interpretation of descriptor transferability require clarification before I can recommend publication.
+2. The description of the BOP representation should be expanded. The manuscript states, correctly in broad terms, that the descriptors are moment-based and physically interpretable, but it does not explain which moments were retained, how the 0.7d projections and 0.5OS settings modify the underlying canonical model, or why this variant should outperform the canonical BOP baseline. Because the manuscript emphasizes physical interpretability, the authors should explain the relationship between the retained moments and the local $d$-band electronic structure in more concrete terms.
 
-## (ii) Major Comments
+3. The simple-to-complex transfer claim requires cleaner physical support. The paper argues that complex TCP phases reuse local environments already present in the simpler prototypes, which is plausible, but the supporting evidence is currently qualitative. I recommend including at least one compact analysis that maps the coordination/site families represented in the simple phases onto those appearing in $R$, $P$, $M$, and $\delta$. Without such a bridge, the transfer argument remains more suggestive than demonstrated.
 
-**1. DFT convergence and EOS fitting protocol.**
-The Methods section states that plane-wave energy cutoffs of 400–450 eV and Monkhorst–Pack meshes were used. For large-unit-cell phases (R, M, P, δ), single Γ-point calculations were employed. The convergence of total energy differences with respect to k-point sampling for these large cells should be explicitly demonstrated, not merely asserted. A single Γ-point may be insufficient for metallic systems with sharp features at the Fermi level, particularly for formation energy differences that require sub-10 meV/atom resolution. I recommend the authors provide a convergence table showing formation energy vs. k-point density for at least one representative structure of each complex phase (R, M, P, δ).
+4. The external validation must be reported quantitatively in the manuscript itself. The text currently says that the notebook parity plots annotate phase-resolved RMSE values but does not list those values because the checked-out repository does not expose them as plain text. That is not sufficient for publication. The authors need to recover the actual $R$, $P$, $M$, and $\delta$ errors for BOP, ACE, and SOAP and tabulate them, even if this requires rerunning or exporting the archived notebook state more carefully.
 
-**2. Reference state choice.**
-The formation energy reference is non-magnetic (NM) hcp Fe and hcp Mo. The choice of NM hcp Fe is unusual — ground-state Fe is ferromagnetic bcc. The authors should justify why the NM hcp reference is appropriate for TCP phases and demonstrate that the relative energetics are insensitive to this reference choice. In particular, the magnetic energy of bcc Fe (bcc–NM) is approximately 0.5 eV/atom — how does this affect the formation energy scale?
+5. The manuscript should provide at least one genuine parity figure rather than schematic placeholders. For an electronic-structure and descriptor paper, a placeholder box is not adequate evidence. The same concern applies to the occupancy comparison. These figures are central to the claims and should be included in publishable form.
 
-**3. BOP moment interpretability.**
-The BOP moments (μ₀–μ₃) are computed from a canonical d-band tight-binding Hamiltonian. The authors claim that BOP descriptors "capture the essential chemistry of d-band filling and hybridisation." However, only the first four moments are used. In canonical band theory, the fourth moment already introduces sensitivity to bond angles and topology, but higher moments (μ₅, μ₆) are needed to distinguish certain TCP polytypes. Was there any systematic convergence test with respect to moment order? This is especially relevant because BOP outperforms ACE and SOAP — the physical reason for this should be explored more quantitatively.
+## Minor comments
+1. The manuscript should state explicitly whether the formation energies are based on fully relaxed magnetic states for the FM data and on separate nonmagnetic relaxations for the NM data, or whether some reference structures were reused.
+2. The Murnaghan fitting is mentioned, but the quality criteria for accepting or rejecting equation-of-state fits are not reported.
+3. The introduction and methods still contain `% TODO: CITE` placeholders for core TCP and BOP literature. These must be resolved before submission.
+4. It would help the reader to explain why the internal test leader is ACE/KRR whereas the downstream interpretation centers BOP.
+5. Please define once, in words, what “0.5OS” means in the BOP feature name.
 
-**4. CNAV: crystallographic justification vs. circularity.**
-The CNAV scheme groups atoms by coordination number and averages descriptors within each CN group. For simple TCP phases, CN values are 12, 14, 15, 16 (the Kasper polyhedra). For complex phases, the same CN values appear. However, two sites with the same CN can have very different local environments (e.g., a CN-12 site in A15 vs. a CN-12 site in χ). How does CNAV distinguish these? The authors should discuss whether the averaging within CN groups discards the very information needed to discriminate between phases. If BOP moments are already site-specific, why is the additional CNAV averaging necessary?
-
-**5. Pulay stress correction.**
-The authors state that E–V curve fitting eliminates Pulay stress errors. This is true only if the cell shape and volume are varied consistently. For the constant-volume calculations, did the authors use the same energy cutoff and ENCUT parameter across all volumes? Pulay stress arises from the basis-set incompleteness with respect to volume changes in plane-wave codes. Please confirm that no ENCUT variation is present across the E–V curve.
-
-## (iii) Minor Comments
-
-1. Line 5 of Methods: "single k-point calculations at the Γ-centred point" — typo, should be "Γ-centred" or "Γ-only".
-2. The Birch–Murnaghan EOS fitting: was a third-order or second-order EOS used? Please specify.
-3. The authors mention "BOPfox code" and "BOP moments" but do not provide the version or the specific DFT→BOP projection parameters (scissor operator shift value, smearing, etc.). These details are essential for reproducibility.
-4. The canonical tight-binding Hamiltonian assumes a rectangular d-band. Have the authors considered the effect of the d-band shape (e.g., elliptic vs. rectangular) on the predicted moments?
-5. Figure 3 would benefit from an inset zooming into the low-energy region (< 0.1 eV/atom), where the most physically relevant structures lie.
-
-## (iv) Recommendation
-
-**Major Revision.** The DFT convergence documentation and the physical interpretability of the BOP/CNAV comparison need to be strengthened. The core methodology is sound and the results are promising, but the paper would benefit from addressing the above points before publication in Physical Review B.
+## Recommendation
+Major Revision
