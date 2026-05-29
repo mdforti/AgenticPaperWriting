@@ -1,0 +1,48 @@
+\section{Results}
+\label{sec:results}
+
+The curation notebook first establishes the basic scale of the dataset. After the final removal of one magnetic $R$-phase training entry, 292 structures remain in the curated brief summary, with a mean size of 23.0 atoms and a maximum size of 53 atoms. The convex-hull table extracted from the notebook shows representative low-energy configurations across A15, C15, C14, $\chi$, $\mu$, C36, $\sigma$, and $R$, while the dedicated validation notebook adds 70 complex-phase structures distributed over $R$, $P$, $M$, and $\delta$. Several simple TCP prototypes exhibit negative formation energies on the nonmagnetic hcp reference scale, including C14-BAA at \SI{-32.8}{\milli\electronvolt\per\atom}, $\mu$-AABBB at \SI{-28.9}{\milli\electronvolt\per\atom}, C36-BBAAA at \SI{-17.4}{\milli\electronvolt\per\atom}, and the low-$R$ configurations near $x_{\mathrm{Mo}}=0.38$--0.49, which reach down to \SI{-42.8}{\milli\electronvolt\per\atom}. These values confirm that the training space samples the low-energy portion of the Fe--Mo TCP manifold rather than only high-enthalpy prototypes.
+
+The internal test-set comparison extracted from the learning notebook is summarized in Table~\ref{tab:rmse}. Two conclusions are immediate. First, domain-aware descriptors are essential. Dataset-only encodings remain near \SI{53}{\milli\electronvolt\per\atom}, canonical BOP and canonical ACE are substantially worse, and purely atomic baselines exceed \SI{150}{\milli\electronvolt\per\atom}. Second, once physically resolved descriptors are used, the errors collapse into the low-\SI{10}{\milli\electronvolt\per\atom} regime. The numerically smallest archived test RMSE is delivered by ACE with kernel ridge regression, \SI{26.3}{\milli\electronvolt\per\atom}, followed closely by the bond-specific BOP representation at \SI{28.2}{\milli\electronvolt\per\atom}. SOAP becomes competitive only for the MLP model, where it reaches \SI{40.0}{\milli\electronvolt\per\atom}. The stored parity and error plots in the analysis notebook show that these errors are not driven by a single pathological phase but instead reflect a systematic descriptor hierarchy.
+
+\begin{table*}[t]
+\caption{Archived test-set RMSE values extracted from \texttt{07\_MachineLearn.ipynb}. All values are given in meV/atom.}
+\label{tab:rmse}
+\begin{ruledtabular}
+\begin{tabular}{lccc}
+Descriptor & Kernel Ridge & MLP & Random Forest \\
+\colrule
+ACE & 26.3 & 40.4 & 52.2 \\
+0.7dProjections 0.5OS BOP & 28.2 & 40.2 & 49.4 \\
+SOAP\_specific\_small & 49.1 & 40.0 & 51.5 \\
+Dataset encoding & 53.8 & 60.5 & 53.0 \\
+Canonical BOP & 107.6 & 118.2 & 107.8 \\
+Canonical ACE & 136.9 & 139.2 & 121.5 \\
+Atomic baseline & 167.5 & --- & 156.8 \\
+\end{tabular}
+\end{ruledtabular}
+\end{table*}
+
+The effect of coordination-number-resolved averaging can be quantified directly because the archive contains matched CNAV and non-CNAV variants for each descriptor family. The improvement is negligible for ACE with kernel ridge regression, where the error stays at \SI{26.3}{\milli\electronvolt\per\atom}, but it is decisive for the more structure-sensitive representations. For bond-specific BOP moments the KRR test error drops from \SI{37.1}{\milli\electronvolt\per\atom} without CNAV to \SI{28.2}{\milli\electronvolt\per\atom} with CNAV, a 24\% reduction. SOAP shows an even larger improvement, from \SI{81.8}{\milli\electronvolt\per\atom} to \SI{49.1}{\milli\electronvolt\per\atom} for KRR, and the dataset-only structural encoding is nearly halved from \SI{105.4}{\milli\electronvolt\per\atom} to \SI{53.8}{\milli\electronvolt\per\atom}. The MLP and random-forest pipelines display the same tendency, albeit with smaller gains for ACE. These comparisons show that crystallographic site resolution is most valuable precisely when the raw descriptor contains detailed local-bonding information that would otherwise be washed out by indiscriminate averaging.
+
+The model-selection notebook also clarifies how these errors are achieved. The archived input dimensionalities are large, reaching 1803 for ACE and 513 for the bond-specific BOP representation, but the recursive feature-selection curves show that only a comparatively small and highly ranked subset is needed before the test RMSE saturates. The best fitted bond-specific BOP voting regressor displayed in the notebook uses a polynomial-kernel KRR model with $\alpha=0.1$ and degree 4, whereas a displayed SOAP voting regressor uses $\alpha=0.1$ and \texttt{coef0}=5. The ensemble is not a vague bagging step but an explicit ten-member vote over independently fitted pipelines, and the validation tables preserve the associated vote spread as \texttt{std\_votes}. The fact that the physically informed BOP representation reaches low test errors from a much smaller starting space than ACE is consistent with the idea that its moment descriptors already encode a compact and targeted summary of the local electronic structure.
+
+External transfer to the complex phases is handled in the dedicated validation notebook. The notebook constructs parity panels for BOP, ACE, and SOAP across the $R$, $P$, $M$, and $\delta$ phases and explicitly computes a phase-resolved RMSE via the DFT/prediction pairs before annotating each panel. Although the checked-out repository does not retain the serialized RMSE JSON written during notebook execution, the stored workflow confirms that all four phases were evaluated, that the same DFT validation structures are used for all three descriptor families, and that the resulting annotations are in meV/atom. The visible matched $R$-phase table contains 18 BOP predictions spanning from \SI{-9.3}{\milli\electronvolt\per\atom} to \SI{359.9}{\milli\electronvolt\per\atom}, together with a vote-dispersion column \texttt{std\_votes} ranging from about \SI{8.7}{\milli\electronvolt\per\atom} to \SI{67.5}{\milli\electronvolt\per\atom}. We therefore interpret the validation as a genuine out-of-manifold transfer test, even though the exact phase-by-phase RMSE values remain embedded in the stored figure annotations rather than in plain text. Figure~\ref{fig:parity} summarizes this validation logic schematically.
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{0.45\columnwidth}{\centering Notebook-generated parity plots compare DFT and predicted $E_f^{\mathrm{nmhcp}}$ for the $R$, $P$, $M$, and $\delta$ phases and annotate the phase-resolved RMSE in meV/atom for BOP, ACE, and SOAP.}}
+\caption{Schematic placeholder for the validation parity plots produced in \texttt{11\_ValidatePredictions.ipynb}. The notebook computes phase-resolved RMSE values for the complex phases and compares BOP, ACE, and SOAP on identical DFT validation structures.}
+\label{fig:parity}
+\end{figure}
+
+The thermodynamic analysis provides a second transfer test because it uses the machine-learned formation energies as inputs to a compound-energy-formalism model rather than simply comparing pointwise energies. At \SI{1700}{\kelvin}, the Bragg--Williams notebook evaluates the Gibbs free energies of the candidate phases and prints the $R$-phase mixing free energy over 19 compositions. The strongest stabilization in the printed series is \SI{-53.4}{\milli\electronvolt\per\atom} at $x_{\mathrm{Fe}}=0.263158$, after which the mixing term gradually approaches zero toward the elemental limits. The same notebook overlays the predicted $R$-phase sublattice occupancies with the experimental composition series $x_{\mathrm{Mo}}=0.27958$--0.37978 using the eleven crystallographic site labels $b$, $c_1$, $f_1$--$f_8$, and thereby converts the energy model into a directly testable structural prediction.
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{0.45\columnwidth}{\centering Notebook-generated occupancy figure compares ML+CEF predictions and experimental $R$-phase site occupancies at \SI{1700}{\kelvin}.}}
+\caption{Schematic placeholder for the $R$-phase occupancy comparison from \texttt{15\_A\_Thermodynamics.ipynb}. The archived figure overlays the Bragg--Williams solution based on machine-learned energies with the experimental site fractions from \texttt{FeMo.csv}.}
+\label{fig:occupancy}
+\end{figure}
+
+Taken together, the archived results show that chemistry-aware initialization and crystallography-aware averaging are enough to drive the internal test errors into the low-\SI{10}{\milli\electronvolt\per\atom} regime, while the physically motivated bond-order-potential representation provides the most natural path from the simple training structures to the complex-phase validation and thermodynamic analysis. The internal test leader is numerically an ACE/KRR model, but the downstream validation workflow in the repository centers the bond-specific BOP representation because it is both competitive on the internal split and the most readily transferable to the complex TCP phases.
