@@ -9,7 +9,7 @@ The central hypothesis of this work is that \textbf{domain knowledge of chemistr
 \begin{enumerate}
   \item \textbf{Chemistry} --- Vegard's-law-like volume scaling captures the systematic variation of formation energy with average atomic volume as a function of composition.
   \item \textbf{Crystallography} --- Coordination-number-resolved averaging (CNAV) condenses local structural information into coarse-grained fingerprints that respect the distinct crystallographic environments of each Wyckoff site.
-  \item \textbf{Local bonding} --- Three families of atom-centred descriptors are compared: bond-order potential (BOP) moments from a canonical tight-binding Hamiltonian~\cite{bopfox}, atomic cluster expansion (ACE) descriptors~\cite{ace}, and smooth overlap of atomic positions (SOAP) fingerprints~\cite{soap}.
+  \item \textbf{Local bonding} --- Three families of atom-centred descriptors are compared: bond-order potential (BOP) moments from a canonical tight-binding Hamiltonian~\cite{bopfox}, atomic cluster expansion (ACE)~\cite{ace}, and smooth overlap of atomic positions (SOAP) fingerprints~\cite{soap}.
 \end{enumerate}
 
 Using these features, we train kernel ridge regression (KRR), random forest (RF), and multi-layer perceptron (MLP) models---combined into a VotingRegressor ensemble---on 262 DFT-calculated structures of simple TCP phases. Despite never seeing a single complex TCP structure during training, the models achieve test-set RMSE values in the range 20--60~\meVat and accurately predict formation energies of R, M, P, and $\delta$ phases when validated against 70 independent DFT calculations.
